@@ -45,7 +45,6 @@ class StyleHallucinationHook(EvalHook):
             style_list, base_style_num)  # C,2C
         proto_styles = proto_styles.reshape(base_style_num, 2, base_style_num)
         proto_mean, proto_std = proto_styles[:, 0], proto_styles[:, 1]
-
         runner.model.module.model.backbone.style_hallucination.\
             proto_mean.copy_(proto_mean)
         runner.model.module.model.backbone.style_hallucination.\

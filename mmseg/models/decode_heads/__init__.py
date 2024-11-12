@@ -12,6 +12,8 @@ from .psp_head import PSPHead
 from .segformer_head import SegFormerHead
 from .sep_aspp_head import DepthwiseSeparableASPPHead
 from .uper_head import UPerHead
+from .faspp_head import  FASPP_HEAD
+from .farsee_head import FARSEE_HEAD
 
 __all__ = [
     'FCNHead',
@@ -25,4 +27,6 @@ __all__ = [
     'DAFormerHead',
     'ISAHead',
     'HRDAHead',
+    'FASPP_HEAD',
+    'FARSEE_HEAD'
 ]

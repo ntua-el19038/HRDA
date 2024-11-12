@@ -18,18 +18,41 @@ def get_model_base(architecture, backbone):
         for n in hrda_name:
             architecture = architecture.replace(f'{n}_', '')
     architecture = architecture.replace('_nodbn', '')
-    if 'segformer' in architecture:
-        return {
-            'mitb5': f'_base_/models/{architecture}_b5.py',
-            # It's intended that <=b4 refers to b5 config
-            'mitb4': f'_base_/models/{architecture}_b5.py',
-            'mitb3': f'_base_/models/{architecture}_b5.py',
-            'r101v1c': f'_base_/models/{architecture}_r101.py',
-        }[backbone]
+    # if 'segformer' in architecture:
+    #     return {
+    #         # 'mitb5': f'_base_/models/{architecture}_b5.py',
+    #         # It's intended that <=b4 refers to b5 config
+    #         # 'mitb4': f'_base_/models/{architecture}_b5.py',
+    #         # 'mitb3': f'_base_/models/{architecture}_b5.py',
+    #         # 'r101v1c': f'_base_/models/{architecture}_r101.py',
+    #         'r18': f'_base_/models/{architecture}_r18.py',
+    #     }[backbone]
+    if 'segformer' in architecture and 'mitb5' in backbone:
+        return f'_base_/models/{architecture}_b5.py'
+    if 'segformer' in architecture and 'mitb1' in backbone:
+        return f'_base_/models/{architecture}_b1.py'
+    if 'segformer' in architecture and 'r18' in backbone:
+        return f'_base_/models/{architecture}_r18.py'
     if 'daformer_' in architecture and 'mitb5' in backbone:
         return f'_base_/models/{architecture}_mitb5.py'
+    if 'daformer_' in architecture and 'mitb4' in backbone:
+        return f'_base_/models/{architecture}_mitb4.py'
+    if 'daformer_' in architecture and 'mitb3' in backbone:
+        return f'_base_/models/{architecture}_mitb3.py'
+    if 'daformer_' in architecture and 'mitb2' in backbone:
+        return f'_base_/models/{architecture}_mitb2.py'
+    if 'daformer_' in architecture and 'mitb1' in backbone:
+        return f'_base_/models/{architecture}_mitb1.py'
+    if 'daformer_' in architecture and 'mitb0' in backbone:
+        return f'_base_/models/{architecture}_mitb0.py'
+    if 'daformer_' in architecture and 'r18' in backbone:
+        return f'_base_/models/{architecture}_r18.py'
     if 'upernet' in architecture and 'mit' in backbone:
         return f'_base_/models/{architecture}_mit.py'
+    if 'farseenet2' in architecture :
+        return f'_base_/models/{architecture}.py'
+    if 'farseenet' in architecture:
+        return f'_base_/models/{architecture}.py'
     assert 'mit' not in backbone or '-del' in backbone
     return {
         'dlv2': '_base_/models/deeplabv2_r50-d8.py',
@@ -48,8 +71,20 @@ def get_pretraining_file(backbone):
         return 'pretrained/mit_b4.pth'
     if 'mitb3' in backbone:
         return 'pretrained/mit_b3.pth'
+    if 'mitb2' in backbone:
+        return 'pretrained/mit_b2.pth'
+    if 'mitb1' in backbone:
+        return 'pretrained/mit_b1.pth'
+    if 'mitb0' in backbone:
+        return 'pretrained/mit_b0.pth'
     if 'r101v1c' in backbone:
         return 'open-mmlab://resnet101_v1c'
+    if 'r18' in backbone:
+        return 'pretrained/resnet18_8xb32_in1k_20210831-fbbb1da6.pth'
+    if 'r34' in backbone:
+        return  'pretrained/resnet34-b627a593.pth'
+    if 'r50' in backbone:
+        return  'pretrained/resnet50-11ad3fa6.pth'
     return {
         'r50v1c': 'open-mmlab://resnet50_v1c',
         'x50-32': 'open-mmlab://resnext50_32x4d',
@@ -61,12 +96,21 @@ def get_pretraining_file(backbone):
 
 
 def get_backbone_cfg(backbone):
-    for i in [1, 2, 3, 4, 5]:
+    for i in [0, 1, 2, 3, 4, 5]:
         if backbone == f'mitb{i}':
             return dict(type=f'mit_b{i}')
         if backbone == f'mitb{i}-del':
             return dict(_delete_=True, type=f'mit_b{i}')
     return {
+        'r18': {
+            'depth': 18
+        },
+        'r34': {
+            'depth': 34
+        },
+        'r50': {
+            'depth': 50
+        },
         'r50v1c': {
             'depth': 50
         },
@@ -305,7 +349,7 @@ def generate_experiment_cfgs(id):
         # Setup runner
         cfg['runner'] = dict(type='IterBasedRunner', max_iters=iters)
         cfg['checkpoint_config'] = dict(
-            by_epoch=False, interval=iters, max_keep_ckpts=1)
+            by_epoch=False, interval=iters//20, max_keep_ckpts=1)
         cfg['evaluation'] = dict(interval=iters // 10, metric='mIoU')
 
         # Construct config name
@@ -361,8 +405,8 @@ def generate_experiment_cfgs(id):
     # -------------------------------------------------------------------------
     cfgs = []
     n_gpus = 1
-    batch_size = 2
-    iters = 40000
+    batch_size = 3
+    iters = 416100
     opt, lr, schedule, pmult = 'adamw', 0.00006, 'poly10warm', True
     crop = '512x512'
     gpu_model = 'NVIDIAGeForceRTX2080Ti'
@@ -371,7 +415,7 @@ def generate_experiment_cfgs(id):
     ]
     use_dg_dataset = False
     architecture = None
-    workers_per_gpu = 1
+    workers_per_gpu = 10
     share_src_backward = False
 
     rcs_T = None
@@ -587,10 +631,11 @@ def generate_experiment_cfgs(id):
     # DG Extension
     # -------------------------------------------------------------------------
     elif id == 50:
-        seeds = [0, 1, 2]
+        seeds = [0]
         use_dg_dataset = True
-        synthia2cs = ('synthia', 'cityscapes', '512x512', 0.5)
-        synthiaHR2csHR = ('synthiaHR', 'cityscapesHR', '1024x1024', 0.5 * (2 ** 2))
+        gta2cs = ('gtaCAug', 'cityscapes', '512x512', 0.5)
+        # synthia2cs = ('synthia', 'cityscapes', '512x512', 0.5)
+        gtaHR2csHR = ('gtaCAugHR', 'cityscapesHR', '1024x1024', 0.5 * (2 ** 2))
         for architecture, backbone, uda, rcs_T, schedule, shade in [
             # We don't need dacs_a999_* here because srconly has no EMA teacher
             # DAFormer w/o SHADE
@@ -598,19 +643,30 @@ def generate_experiment_cfgs(id):
             # HRDA w/o SHADE
             # ('hrda1-512-0.1_daformer_sepaspp', 'mitb5', 'dacs_fdthings_srconly', 0.01, 'poly10warm', False),
             # DAFormer w/ SHADE
-            ('daformer_sepaspp',               'mitb5', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
+            # ('daformer_sepaspp',               'mitb0', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
+            # ('daformer_sepaspp',               'mitb5', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
+            ('farseenet2',                      'mitb1', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True)
+            #     ('farseenet', 'r34', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True)
+            #     ('farseenet', 'r34', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True)
+            # ('segformer',               'r18', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
+            # ('farseenet', 'mitb1', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
+            # ('segformer',               'mitb1', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
+            # ('daformer_sepaspp',               'mitb1', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
+            # ('daformer_sepaspp',               'mitb3', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
+            # ('daformer_sepaspp',               'mitb4', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
+            # ('daformer_sepaspp',               'mitb5', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True)
             # HRDA w/ SHADE (384x384 detail crop is necessary to fit SHADE into 24 GB memory)
-            ('hrda1-384-0.1_daformer_sepaspp', 'mitb5', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
+            #('hrda1-384-0.1_daformer_sepaspp', 'mitb5', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
         ]:
             for seed in seeds:
                 # Reset to default
-                source, target, crop, rcs_min_crop = synthia2cs
+                source, target, crop, rcs_min_crop = gta2cs
                 inference = 'whole'
                 gpu_model = 'NVIDIAGeForceRTX2080Ti'
                 share_src_backward = False
                 # Config specific modifications
                 if 'hrda' in architecture:
-                    source, target, crop, rcs_min_crop = synthia2cs
+                    source, target, crop, rcs_min_crop = gtaHR2csHR
                     inference = 'slide'
                     gpu_model = 'NVIDIATITANRTX'
                 if shade:

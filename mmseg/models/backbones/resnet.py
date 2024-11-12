@@ -2,11 +2,13 @@
 
 import warnings
 
+import torch
 import torch.nn as nn
 import torch.utils.checkpoint as cp
 from mmcv.cnn import build_conv_layer, build_norm_layer, build_plugin_layer
 from mmcv.runner import BaseModule
 from mmcv.utils.parrots_wrapper import _BatchNorm
+from mmseg.models.utils.style_hallucination import StyleHallucination
 
 from ..builder import BACKBONES
 from ..utils import ResLayer
@@ -415,13 +417,18 @@ class ResNet(BaseModule):
                  with_cp=False,
                  zero_init_residual=True,
                  pretrained=None,
-                 init_cfg=None):
+                 init_cfg=None,
+                 style_hallucination_cfg=None):
         super(ResNet, self).__init__(init_cfg)
         if depth not in self.arch_settings:
             raise KeyError(f'invalid depth {depth} for resnet')
 
         self.pretrained = pretrained
         self.zero_init_residual = zero_init_residual
+        self.style_hallucination = None
+        if style_hallucination_cfg is not None:
+            self.style_hallucination = StyleHallucination(
+                **style_hallucination_cfg)
         block_init_cfg = None
         assert not (init_cfg and pretrained), \
             'init_cfg and pretrained cannot be setting at the same time'
@@ -654,8 +661,9 @@ class ResNet(BaseModule):
             for param in m.parameters():
                 param.requires_grad = False
 
-    def forward(self, x):
+    def forward_features(self, x, return_style=False):
         """Forward function."""
+        B = x.shape[0]
         if self.deep_stem:
             x = self.stem(x)
         else:
@@ -664,12 +672,23 @@ class ResNet(BaseModule):
             x = self.relu(x)
         x = self.maxpool(x)
         outs = []
+        if return_style:
+            return x
+        if self.training and self.style_hallucination is not None:
+            x, x_style = self.style_hallucination(x)
+            x = torch.cat((x, x_style), dim=0)
+            B *= 2
         for i, layer_name in enumerate(self.res_layers):
             res_layer = getattr(self, layer_name)
             x = res_layer(x)
             if i in self.out_indices:
                 outs.append(x)
         return tuple(outs)
+    def forward(self, x):
+        x = self.forward_features(x)
+        # x = self.head(x)
+
+        return x
 
     def train(self, mode=True):
         """Convert the model into training mode while keep normalization layer
@@ -710,4 +729,26 @@ class ResNetV1d(ResNet):
 
     def __init__(self, **kwargs):
         super(ResNetV1d, self).__init__(
+            deep_stem=True, avg_down=True, **kwargs)
+
+@BACKBONES.register_module()
+class ResNet18(ResNet):
+
+
+    def __init__(self, **kwargs):
+        super(ResNet18, self).__init__(
+            deep_stem=True, avg_down=True, **kwargs)
+
+@BACKBONES.register_module()
+class ResNet34(ResNet):
+
+    def __init__(self, **kwargs):
+        super(ResNet34, self).__init__(
+            deep_stem=True, avg_down=True, **kwargs)
+
+@BACKBONES.register_module()
+class ResNet50(ResNet):
+
+    def __init__(self, **kwargs):
+        super(ResNet50, self).__init__(
             deep_stem=True, avg_down=True, **kwargs)
