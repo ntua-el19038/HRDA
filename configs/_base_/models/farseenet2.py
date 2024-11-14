@@ -4,8 +4,8 @@ norm_cfg = dict(type='BN', requires_grad=True)
 find_unused_parameters = True
 model = dict(
     type='EncoderDecoder',
-    pretrained='pretrained/mit_b1.pth',
-    backbone=dict(type='mit_b1', style='pytorch'),
+    pretrained='pretrained/mit_b5.pth',
+    backbone=dict(type='mit_b5', style='pytorch'),
     decode_head=dict(
         type='FASPP_HEAD',
         in_channels=[64, 128, 320, 512],

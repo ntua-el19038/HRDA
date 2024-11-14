@@ -645,7 +645,7 @@ def generate_experiment_cfgs(id):
             # DAFormer w/ SHADE
             # ('daformer_sepaspp',               'mitb0', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
             # ('daformer_sepaspp',               'mitb5', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
-            ('farseenet2',                      'mitb1', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True)
+            ('farseenet2',                      'mitb5', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True)
             #     ('farseenet', 'r34', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True)
             #     ('farseenet', 'r34', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True)
             # ('segformer',               'r18', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
