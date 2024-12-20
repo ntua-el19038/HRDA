@@ -7,6 +7,78 @@ from ..builder import HEADS
 from .modules import conv1x1, DWConvBNAct, ConvBNAct
 from .decode_head import BaseDecodeHead
 
+class MaxStyle(nn.Module):
+    def __init__(self, p=0.4, mix_learnable=True, noise_learnable=True, eps=1e-6, device='gpu'):
+        super(MaxStyle, self).__init__()
+        self.p = p
+        self.device = device
+        self.mix_learnable = mix_learnable
+        self.noise_learnable = noise_learnable
+        self.eps = eps
+        self.noise_applied = False  # Flag to monitor noise application
+
+    def _initialize_parameters(self, input_tensor):
+        device = input_tensor.device
+        B, C, _, _ = input_tensor.shape
+        self.gamma_noise = (
+            nn.Parameter(torch.randn(B, C, 1, 1, device=device)) if self.noise_learnable else torch.zeros(B, C, 1, 1, device=device)
+        )
+        self.beta_noise = (
+            nn.Parameter(torch.randn(B, C, 1, 1, device=device)) if self.noise_learnable else torch.zeros(B, C, 1, 1, device=device)
+        )
+        self.lmda = (
+            nn.Parameter(torch.rand(B, 1, 1, 1, device=device)) if self.mix_learnable else torch.zeros(B, 1, 1, 1, device=device)
+        )
+        #logger.info("MaxStyle parameters initialized.")
+
+    def forward(self, x):
+        #logger.debug("MaxStyle forward pass started.")
+        if not self.training:
+            #logger.info("MaxStyle layer bypassed (evaluation mode).")
+            self.noise_applied = False
+            return x
+
+        B, C, _, _ = x.shape
+        if not hasattr(self, "gamma_noise") or self.gamma_noise.shape[0] != B:
+            self._initialize_parameters(x)
+
+        device = x.device
+        self.perm = torch.randperm(B, device=device)
+
+        # Randomly decide whether to apply noise for each sample in the batch
+        apply_noise = torch.rand(B, device=device) < self.p
+        self.noise_applied = apply_noise.any().item()  # Update flag
+        apply_noise = apply_noise.view(-1, 1, 1, 1).float()  # Reshape for broadcasting
+
+        # Calculate means and variances
+        mu = x.mean(dim=[2, 3], keepdim=True)
+        var = x.var(dim=[2, 3], keepdim=True)
+        sig = (var + self.eps).sqrt()
+        x_normed = (x - mu) / sig
+
+        # Mix statistics with a permuted batch
+        mu2, sig2 = mu[self.perm], sig[self.perm]
+        clipped_lmda = torch.clamp(self.lmda, 0, 1)
+        sig_mix = sig * (1 - clipped_lmda) + sig2 * clipped_lmda
+        mu_mix = mu * (1 - clipped_lmda) + mu2 * clipped_lmda
+
+        # Apply noise
+        x_aug = (sig_mix + self.gamma_noise) * x_normed + (mu_mix + self.beta_noise)
+
+        # Use `apply_noise` to switch between augmented and original inputs
+        output = x_aug * apply_noise + x * (1 - apply_noise)
+
+        # Log whether noise was applied
+        #logger.info(f"MaxStyle applied noise: {self.noise_applied}")
+
+        return output
+
+    def reconstruction_loss(self):
+        if not hasattr(self, "gamma_noise") or self.gamma_noise is None:
+            return 0.0  # Skip uninitialized layers
+        loss = torch.mean(self.gamma_noise**2 + self.beta_noise**2)
+        #logger.info(f"MaxStyle reconstruction loss: {loss.item()}")
+        return loss
 
 @HEADS.register_module()
 class FASPP_HEAD(BaseDecodeHead):
@@ -41,6 +113,9 @@ class FASPP_HEAD(BaseDecodeHead):
             conv1x1(hid_channels * 4, hid_channels * 2 * (2 ** 2)),
             nn.PixelShuffle(2)
         )
+
+        # Add MaxStyle layer
+        self.max_style1 = MaxStyle()
 
         # Low level convolutions
         self.conv_low_init = ConvModule(
@@ -88,6 +163,10 @@ class FASPP_HEAD(BaseDecodeHead):
             conv1x1(hid_channels * 2, num_class * 2 * (4 ** 4)),
             nn.PixelShuffle(4)  # 2
         )
+
+        # Add MaxStyle layer
+        self.max_style2 = MaxStyle()
+
         # Mid2 level convolutions
         self.conv_mid2_init = ConvModule(
             mid_channels2,
@@ -143,6 +222,9 @@ class FASPP_HEAD(BaseDecodeHead):
         x = torch.cat(high_feats, dim=1)
         x = self.sub_pixel_high(x)
 
+        # Apply Max Style
+        x=self.max_style1(x)
+
         # Low level features
         x_low = self.conv_low_init(x_low)
         x = torch.cat([x, x_low], dim=1)
@@ -154,6 +236,9 @@ class FASPP_HEAD(BaseDecodeHead):
         x = torch.cat(low_feats, dim=1)
         x = self.conv_low_last(x)
         x = self.sub_pixel_low(x)
+
+        # Apply Max Style
+        x=self.max_style2(x)
 
         # # Mid1 level features
         # xmid1 = self.conv_mid1_init(xmid1)
