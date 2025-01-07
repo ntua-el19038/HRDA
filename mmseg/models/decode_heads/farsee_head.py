@@ -51,14 +51,7 @@ class FARSEE_HEAD(BaseDecodeHead):
             nn.PixelShuffle(4)
         )
 
-    # def forward(self, x):
-    #     # print(len(x))
-    #     # print(x[0].shape)
-    #     # print(x[1].shape)
-    #     # print(x[2].shape)
-    #     # print(x[3].shape)
-    #     x_low = x[2]
-    #     x_high = x[3]
+
     def forward(self, inputs):
         # High level features
         xmid2, xmid1, x_low, x_high = inputs
