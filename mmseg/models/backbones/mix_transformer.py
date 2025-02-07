@@ -10,6 +10,7 @@
 import math
 import warnings
 from functools import partial
+import random
 
 import torch
 import torch.nn as nn
@@ -20,6 +21,13 @@ from mmseg.models.builder import BACKBONES
 from mmseg.models.utils.style_hallucination import StyleHallucination
 from mmseg.utils import get_root_logger
 
+# GIN
+import torch
+from torch import nn
+from torch.nn import functional as F
+import numpy as np
+from pdb import set_trace
+from .gin_ipa import apply_gin_ipa_to_image
 
 class Mlp(nn.Module):
 
@@ -405,7 +413,10 @@ class MixVisionTransformer(BaseModule):
     def forward_features(self, x, return_style=False):
         B = x.shape[0]
         outs = []
-
+        # Use the component 20% of the time
+        # if random.random() < 0.3:  # Or torch.rand(1).item() < 0.2
+        # if self.training :
+        #     x = apply_gin_ipa_to_image(image_path=x)
         # stage 1
         x, H, W = self.patch_embed1(x)
         for i, blk in enumerate(self.block1):

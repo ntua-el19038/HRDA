@@ -238,7 +238,7 @@ class FASPP_HEAD(BaseDecodeHead):
         x = self.sub_pixel_low(x)
 
         # Apply Max Style
-        x=self.max_style2(x)
+        # x=self.max_style2(x)
 
         # # Mid1 level features
         # xmid1 = self.conv_mid1_init(xmid1)

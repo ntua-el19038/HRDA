@@ -598,7 +598,7 @@ def generate_experiment_cfgs(id):
             # HRDA w/o SHADE
             # ('hrda1-512-0.1_daformer_sepaspp', 'mitb5', 'dacs_fdthings_srconly', 0.01, 'poly10warm', False),
             # DAFormer w/ SHADE
-            ('daformer_sepaspp',               'mitb5', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
+            # ('daformer_sepaspp',               'mitb5', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
             # HRDA w/ SHADE (384x384 detail crop is necessary to fit SHADE into 24 GB memory)
             ('hrda1-384-0.1_daformer_sepaspp', 'mitb5', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
         ]:

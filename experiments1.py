@@ -49,6 +49,8 @@ def get_model_base(architecture, backbone):
         return f'_base_/models/{architecture}_r18.py'
     if 'upernet' in architecture and 'mit' in backbone:
         return f'_base_/models/{architecture}_mit.py'
+    if 'farseenet3' in architecture :
+        return f'_base_/models/{architecture}.py'
     if 'farseenet2' in architecture :
         return f'_base_/models/{architecture}.py'
     if 'farseenet' in architecture:
@@ -645,7 +647,7 @@ def generate_experiment_cfgs(id):
             # DAFormer w/ SHADE
             # ('daformer_sepaspp',               'mitb0', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
             # ('daformer_sepaspp',               'mitb5', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
-            ('farseenet2',                      'mitb5', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True)
+            ('farseenet3',                      'mitb1', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True)
             #     ('farseenet', 'r34', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True)
             #     ('farseenet', 'r34', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True)
             # ('segformer',               'r18', 'dacs_fdthings_srconly', 0.01, 'poly10warm', True),
