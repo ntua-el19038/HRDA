@@ -114,8 +114,8 @@ class FASPP_HEAD(BaseDecodeHead):
             nn.PixelShuffle(2)
         )
 
-        # Add MaxStyle layer
-        self.max_style1 = MaxStyle()
+        # # Add MaxStyle layer
+        # self.max_style1 = MaxStyle()
 
         # Low level convolutions
         self.conv_low_init = ConvModule(
@@ -164,8 +164,8 @@ class FASPP_HEAD(BaseDecodeHead):
             nn.PixelShuffle(4)  # 2
         )
 
-        # Add MaxStyle layer
-        self.max_style2 = MaxStyle()
+        # # Add MaxStyle layer
+        # self.max_style2 = MaxStyle()
 
         # Mid2 level convolutions
         self.conv_mid2_init = ConvModule(
@@ -222,8 +222,8 @@ class FASPP_HEAD(BaseDecodeHead):
         x = torch.cat(high_feats, dim=1)
         x = self.sub_pixel_high(x)
 
-        # Apply Max Style
-        x=self.max_style1(x)
+        # # Apply Max Style
+        # x=self.max_style1(x)
 
         # Low level features
         x_low = self.conv_low_init(x_low)
@@ -239,19 +239,6 @@ class FASPP_HEAD(BaseDecodeHead):
 
         # Apply Max Style
         # x=self.max_style2(x)
-
-        # # Mid1 level features
-        # xmid1 = self.conv_mid1_init(xmid1)
-        #
-        # x = torch.cat([x, xmid1], dim=1)
-        #
-        # mid1_feats = []
-        # for conv_mid1 in self.conv_mid1:
-        #     mid1_feats.append(conv_mid1(x))
-        #
-        # x = torch.cat(mid1_feats, dim=1)
-        # x = self.conv_mid1_last(x)
-        # x = self.sub_pixel_mid1(x)
 
         # Mid2 level features
         xmid2 = self.conv_mid2_init(xmid2)

@@ -415,8 +415,8 @@ class MixVisionTransformer(BaseModule):
         outs = []
         # Use the component 20% of the time
         # if random.random() < 0.3:  # Or torch.rand(1).item() < 0.2
-        # if self.training :
-        #     x = apply_gin_ipa_to_image(image_path=x)
+        if self.training :
+            x = apply_gin_ipa_to_image(image_path=x)
         # stage 1
         x, H, W = self.patch_embed1(x)
         for i, blk in enumerate(self.block1):
